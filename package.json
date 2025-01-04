@@ -1,0 +1,52 @@
+{
+  "name": "poputi",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "dependencies": {
+    "@types/node": "^16.18.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "ol": "^10.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.9.5"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm run dev -w frontend",
+    "dev:backend": "npm run dev -w backend",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "npm run build -w frontend",
+    "build:backend": "npm run build -w backend",
+    "start": "concurrently \"npm run preview -w frontend\" \"npm run start -w backend\"",
+    "clean": "rimraf frontend/dist backend/dist",
+    "eject": "react-scripts eject",
+    "test": "react-scripts test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
