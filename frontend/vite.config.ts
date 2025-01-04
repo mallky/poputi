@@ -7,6 +7,11 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      '/api': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false
+      },
       '/ws': {
         target: 'ws://localhost:8080',
         ws: true,
@@ -19,10 +24,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: ['react', 'react-dom'],
-          ol: ['ol']
-        }
-      }
-    }
-  }
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 })

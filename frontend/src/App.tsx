@@ -1,12 +1,9 @@
-import Map from './components/Map/Map'
-import './App.css'
+import { RouterProvider } from 'react-router-dom';
+import { router } from './routes';
+import './App.css';
 
 function App() {
-  return (
-    <div className="app">
-      <Map />
-    </div>
-  )
+  return <RouterProvider router={router} />;
 }
 
-export default App
+export default App;
