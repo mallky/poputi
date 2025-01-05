@@ -108,17 +108,12 @@ class WebSocketService {
     }
   }
 
-  private generateUserId(): string {
-    return Math.random().toString(36).substring(2, 15);
-  }
-
   public disconnect() {
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
     this.callbacks = null;
-    // Не сбрасываем this.user, чтобы сохранить данные пользователя для возможного переподключения
   }
 }
 
