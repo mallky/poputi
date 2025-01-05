@@ -28,6 +28,7 @@ const Map: React.FC = () => {
     removeUser,
     getCurrentPosition,
     setState,
+    setBottomSheetOpen,
     user,
   });
 
@@ -102,8 +103,10 @@ const Map: React.FC = () => {
       >
         {selectedUser && (
           <div>
-            <h2>{selectedUser.user.id}</h2>
-            <p>Type: {selectedUser.user.type}</p>
+            <h2>{selectedUser.user?.id}</h2>
+            <p>Type: {selectedUser.user?.type}</p>
+            <p>Phone: {selectedUser.user?.phoneNumber}</p>
+            <p>Coords: {selectedUser.user?.coordinates?.join(", ")}</p>
           </div>
         )}
       </BottomSheet>

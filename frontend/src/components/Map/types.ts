@@ -3,14 +3,7 @@ import { User } from "../../services/websocket/types";
 export interface MapState {
   isLoading: boolean;
   selectedUser: {
-    user:
-      | User
-      | {
-          id: string;
-          coordinates: [number, number];
-          type: "passenger";
-          phoneNumber: string;
-        };
+    user: User | null;
     position: { x: number; y: number };
   } | null;
 }

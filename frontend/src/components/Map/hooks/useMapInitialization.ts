@@ -18,6 +18,7 @@ interface UseMapInitializationProps {
   removeUser: (userId: string) => void;
   getCurrentPosition: () => Promise<[number, number]>;
   setState: React.Dispatch<React.SetStateAction<MapState>>;
+  setBottomSheetOpen: React.Dispatch<React.SetStateAction<boolean>>;
   user: User | null;
 }
 
@@ -27,6 +28,7 @@ export const useMapInitialization = ({
   removeUser,
   getCurrentPosition,
   setState,
+  setBottomSheetOpen,
   user,
 }: UseMapInitializationProps) => {
   const mapInstance = useRef<OLMap | null>(null);
@@ -34,6 +36,42 @@ export const useMapInitialization = ({
 
   const { updateUserMarker, removeUserMarker, addDefaultMarker } =
     useMapMarkers(markersSource);
+
+  const handleMapClick = useCallback(
+    (event: any) => {
+      const feature = mapInstance.current?.forEachFeatureAtPixel(
+        event.pixel,
+        (feature) => feature
+      );
+
+      if (feature) {
+        const markerType = feature.get("markerType");
+        if (markerType === "default") {
+          setState((prev) => ({
+            ...prev,
+            selectedUser: {
+              user,
+              position: { x: event.pixel[0], y: event.pixel[1] },
+            },
+          }));
+        } else {
+          const user = feature.get("user");
+          setState((prev) => ({
+            ...prev,
+            selectedUser: {
+              user,
+              position: { x: event.pixel[0], y: event.pixel[1] },
+            },
+          }));
+        }
+
+        setBottomSheetOpen(true);
+      } else {
+        setState((prev) => ({ ...prev, selectedUser: null }));
+      }
+    },
+    [setBottomSheetOpen, setState, user]
+  );
 
   const initializeMap = useCallback(async () => {
     if (!mapRef.current) return;
@@ -71,41 +109,7 @@ export const useMapInitialization = ({
 
       addDefaultMarker(coordinates, user.type);
 
-      mapInstance.current.on("click", (event) => {
-        const feature = mapInstance.current?.forEachFeatureAtPixel(
-          event.pixel,
-          (feature) => feature
-        );
-
-        if (feature) {
-          const markerType = feature.get("markerType");
-          if (markerType === "default") {
-            setState((prev) => ({
-              ...prev,
-              selectedUser: {
-                user: {
-                  id: "default",
-                  coordinates: [event.coordinate[0], event.coordinate[1]],
-                  type: "passenger",
-                  phoneNumber: "default",
-                },
-                position: { x: event.pixel[0], y: event.pixel[1] },
-              },
-            }));
-          } else {
-            const user = feature.get("user");
-            setState((prev) => ({
-              ...prev,
-              selectedUser: {
-                user,
-                position: { x: event.pixel[0], y: event.pixel[1] },
-              },
-            }));
-          }
-        } else {
-          setState((prev) => ({ ...prev, selectedUser: null }));
-        }
-      });
+      mapInstance.current.on("click", handleMapClick);
 
       webSocketService.connect({
         onUserLocation: (user) => {
@@ -139,6 +143,7 @@ export const useMapInitialization = ({
     updateUserLocation,
     updateUserMarker,
     user,
+    handleMapClick,
   ]);
 
   return { mapInstance, initializeMap };
