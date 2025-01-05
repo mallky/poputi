@@ -1,134 +1,62 @@
 import React, { useEffect, useRef, useState } from "react";
-import OLMap from "ol/Map";
-import View from "ol/View";
-import TileLayer from "ol/layer/Tile";
-import VectorLayer from "ol/layer/Vector";
-import VectorSource from "ol/source/Vector";
-import OSM from "ol/source/OSM";
-import { fromLonLat } from "ol/proj";
 import { webSocketService } from "../../services/websocket/WebSocketService";
-import Popup from "../Popup/Popup";
-import { useMapMarkers } from "./hooks/useMapMarkers";
+import BottomSheet from "../BottomSheet/BottomSheet";
 import { useGeolocation } from "./hooks/useGeolocation";
+import { useMapInitialization } from "./hooks/useMapInitialization";
 import { MapState } from "./types";
-import { DEFAULT_ZOOM } from "./constants";
 import "ol/ol.css";
 import "./Map.css";
+import { useUserStore } from "../../store/userStore";
+import { Logout } from "../Logout/Logout";
 
 const Map: React.FC = () => {
+  const isInitialized = useRef(0);
+
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<OLMap | null>(null);
-  const markersSource = useRef<VectorSource | null>(null);
   const [{ isLoading, selectedUser }, setState] = useState<MapState>({
     isLoading: true,
     selectedUser: null,
   });
+  const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
 
   const { getCurrentPosition } = useGeolocation();
-  const { updateUserMarker, removeUserMarker, addDefaultMarker } = useMapMarkers(markersSource);
+  const { updateUserLocation, removeUser, currentUser: user } = useUserStore();
 
-  const initializeMap = async () => {
-    if (!mapRef.current) return;
-
-    try {
-      // Get coordinates (will fallback to Moscow if needed)
-      const coordinates = await getCurrentPosition();
-
-      // Create vector source and layer for markers
-      markersSource.current = new VectorSource();
-      const markersLayer = new VectorLayer({
-        source: markersSource.current,
-        zIndex: 1,
-      });
-
-      mapInstance.current = new OLMap({
-        target: mapRef.current,
-        layers: [
-          new TileLayer({
-            source: new OSM(),
-            zIndex: 0,
-          }),
-          markersLayer,
-        ],
-        view: new View({
-          center: fromLonLat(coordinates),
-          zoom: DEFAULT_ZOOM,
-        }),
-      });
-
-      // Add default marker
-      addDefaultMarker(coordinates);
-
-      // Add click handler for markers
-      mapInstance.current.on("click", (event) => {
-        const feature = mapInstance.current?.forEachFeatureAtPixel(
-          event.pixel,
-          (feature) => feature
-        );
-
-        if (feature) {
-          const markerType = feature.get("markerType");
-          if (markerType === "default") {
-            setState((prev) => ({
-              ...prev,
-              selectedUser: {
-                user: {
-                  id: "default",
-                  coordinates: [event.coordinate[0], event.coordinate[1]],
-                  type: "passenger"
-                },
-                position: { x: event.pixel[0], y: event.pixel[1] },
-              },
-            }));
-          } else {
-            const user = feature.get("user");
-            setState((prev) => ({
-              ...prev,
-              selectedUser: {
-                user,
-                position: { x: event.pixel[0], y: event.pixel[1] },
-              },
-            }));
-          }
-        } else {
-          setState((prev) => ({ ...prev, selectedUser: null }));
-        }
-      });
-
-      // Initialize WebSocket connection
-      webSocketService.connect({
-        onUserLocation: updateUserMarker,
-        onUserDisconnect: removeUserMarker,
-        onOpen: async () => {
-          // Send initial location once WebSocket is connected
-          const currentCoords = await getCurrentPosition();
-          webSocketService.sendLocation(currentCoords);
-        },
-        onError: (error) => console.error("WebSocket error:", error),
-        onClose: () => console.log("WebSocket connection closed"),
-      });
-
-      setState({ isLoading: false, selectedUser: null });
-    } catch (error) {
-      console.error("Error initializing map:", error);
-      setState({ isLoading: false, selectedUser: null });
-    }
-  };
+  const { mapInstance, initializeMap } = useMapInitialization({
+    mapRef,
+    updateUserLocation,
+    removeUser,
+    getCurrentPosition,
+    setState,
+    user,
+  });
 
   useEffect(() => {
-    // Only cleanup if there's an existing instance
-    if (mapInstance.current) {
-      mapInstance.current.setTarget(undefined);
-      mapInstance.current = null;
-    }
+    console.log("Map mounting, user:", user?.id);
+    console.log("isInitialized:", isInitialized.current);
 
-    // Initialize map after a short delay to ensure DOM is ready
-    const timeoutId = setTimeout(initializeMap, 100);
+    const init = async () => {
+      try {
+        if (user?.id && !isInitialized.current) {
+          isInitialized.current = 1;
+          await initializeMap();
 
-    // Cleanup function
+          console.log("Map initialized");
+          isInitialized.current = 2;
+        }
+      } catch (error) {
+        console.error("Map initialization failed:", error);
+        setState({ isLoading: false, selectedUser: null });
+      }
+    };
+
+    init();
+  }, [user?.id, initializeMap]);
+
+  useEffect(() => {
     return () => {
-      clearTimeout(timeoutId);
-      if (mapInstance.current) {
+      console.log("Map unmounting");
+      if (mapInstance.current && isInitialized.current === 2) {
         mapInstance.current.setTarget(undefined);
         mapInstance.current = null;
       }
@@ -137,7 +65,9 @@ const Map: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && mapInstance.current) {
+    let intervalId: NodeJS.Timeout;
+
+    if (!isLoading && mapInstance.current && user) {
       const updateLocation = async () => {
         try {
           const coordinates = await getCurrentPosition();
@@ -147,29 +77,37 @@ const Map: React.FC = () => {
         }
       };
 
-      // Removed sending initial location here
-
-      // Set up periodic location updates
-      const intervalId = setInterval(() => {
-        updateLocation().catch((error) => console.error("Error updating location:", error));
-      }, 10000); // every 10 seconds
-
-      return () => {
-        clearInterval(intervalId);
-      };
+      updateLocation();
+      intervalId = setInterval(updateLocation, 10000);
     }
-  }, [isLoading]);
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isLoading, getCurrentPosition, user]);
+
+  if (!user) {
+    return null;
+  }
 
   return (
-    <div ref={mapRef} className="map-container">
+    <div>
+      <div ref={mapRef} className="map-container" />
+      <Logout />
+      <BottomSheet
+        isOpen={isBottomSheetOpen}
+        onClose={() => setBottomSheetOpen(false)}
+      >
+        {selectedUser && (
+          <div>
+            <h2>{selectedUser.user.id}</h2>
+            <p>Type: {selectedUser.user.type}</p>
+          </div>
+        )}
+      </BottomSheet>
       {isLoading && <div className="loading">Loading map...</div>}
-      {selectedUser && (
-        <Popup
-          content={`User ID: ${selectedUser.user.id}\nType: ${selectedUser.user.type}`}
-          position={selectedUser.position}
-          onClose={() => setState((prev) => ({ ...prev, selectedUser: null }))}
-        />
-      )}
     </div>
   );
 };

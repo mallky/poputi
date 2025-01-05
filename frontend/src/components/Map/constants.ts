@@ -1,6 +1,6 @@
 // Map default settings
 export const MOSCOW_COORDINATES: [number, number] = [37.6156, 55.7522];
-export const DEFAULT_ZOOM = 11;
+export const DEFAULT_ZOOM = 15;
 export const GEOLOCATION_OPTIONS = {
   enableHighAccuracy: true,
   timeout: 5000,

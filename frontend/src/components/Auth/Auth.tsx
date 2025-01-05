@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthService } from "../../services/auth/AuthService";
+import { webSocketService } from "../../services/websocket/WebSocketService";
 import "./Auth.css";
+import { useUserStore } from "../../store/userStore";
 
 export const Auth: React.FC = () => {
   const navigate = useNavigate();
@@ -10,6 +12,15 @@ export const Auth: React.FC = () => {
   const [password, setPassword] = useState("");
   const [type, setType] = useState<"driver" | "passenger">("passenger");
   const [error, setError] = useState("");
+  const { setCurrentUser } = useUserStore();
+
+  useEffect(() => {
+    const currentUser = AuthService.getUser();
+    if (currentUser) {
+      setCurrentUser(currentUser);
+      navigate("/map");
+    }
+  }, [navigate, setCurrentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +36,8 @@ export const Auth: React.FC = () => {
 
       AuthService.setToken(response.token);
       AuthService.setUser(response.user);
+      setCurrentUser(response.user);
+      webSocketService.initialize(response.user);
       navigate("/map");
     } catch (err) {
       setError((err as Error).message);

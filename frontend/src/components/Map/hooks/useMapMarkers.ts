@@ -39,8 +39,9 @@ export const useMapMarkers = (
   }, []);
 
   const updateUserMarker = useCallback((user: User) => {
-    if (!markersSource.current) return;
     console.log("user", user);
+    console.log("markersSource.current", markersSource.current);
+    if (!markersSource.current || !user.coordinates) return;
 
     // Remove existing marker for this user if it exists
     const existingFeature = markersSource.current
@@ -78,18 +79,25 @@ export const useMapMarkers = (
     }
   }, []);
 
-  const addDefaultMarker = useCallback((coordinates: [number, number]) => {
-    if (!markersSource.current) return;
+  const addDefaultMarker = useCallback(
+    (coordinates: [number, number], userType: User["type"]) => {
+      if (!markersSource.current) return;
 
-    const marker = new Feature({
-      geometry: new Point(fromLonLat(coordinates)),
-    });
+      const marker = new Feature({
+        geometry: new Point(fromLonLat(coordinates)),
+      });
 
-    marker.set("markerType", "default");
-    marker.setStyle(createMarkerStyle(MARKER_SVG));
+      marker.set("markerType", "default");
+      marker.setStyle(
+        createMarkerStyle(
+          userType === "driver" ? DRIVER_MARKER_SVG : PASSENGER_MARKER_SVG
+        )
+      );
 
-    markersSource.current.addFeature(marker);
-  }, []);
+      markersSource.current.addFeature(marker);
+    },
+    []
+  );
 
   return {
     updateUserMarker,

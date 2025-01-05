@@ -1,16 +1,10 @@
-export type Coordinates = [number, number];  // [longitude, latitude]
+import { User as AuthUser } from "../../types/user";
 
-export type UserType = 'self' | 'driver' | 'passenger';
-
-export interface User {
-    id: string;
-    coordinates: Coordinates;
-    type: UserType;
-}
+export type User = AuthUser;
 
 export interface WebSocketMessage {
-    type: 'user_location' | 'initial_users' | 'user_disconnect';
-    users?: User[];
-    user?: User;
-    userId?: string;
+  type: "user_location" | "initial_users" | "user_disconnect";
+  users?: User[];
+  user?: User;
+  userId?: string;
 }
