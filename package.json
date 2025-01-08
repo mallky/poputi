@@ -31,7 +31,7 @@
     "clean": "rimraf frontend/dist backend/dist",
     "eject": "react-scripts eject",
     "test": "react-scripts test",
-    "deploy": "./deploy.sh"
+    "deploy": "./ci/deploy.sh"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

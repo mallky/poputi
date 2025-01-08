@@ -79,5 +79,33 @@ router.post("/login", authController.login);
  *         description: User already exists
  */
 router.post("/register", authController.register);
+/**
+ * @swagger
+ * /api/auth/users:
+ *   get:
+ *     summary: Get list of registered users
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: A list of registered users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: User ID
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     description: User email
+ *                   name:
+ *                     type: string
+ *                     description: User name
+ */
+router.get("/users", authController.getUsers);
 
 export default router;

@@ -67,4 +67,10 @@ export class AuthService {
     const { password: _, ...userWithoutPassword } = user;
     return { token, user: userWithoutPassword };
   }
+
+  async getUsers(): Promise<Omit<User, "password">[]> {
+    return users.map(
+      ({ password, ...userWithoutPassword }) => userWithoutPassword
+    );
+  }
 }
